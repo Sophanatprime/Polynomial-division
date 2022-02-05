@@ -1,5 +1,5 @@
 \ProvidesPackage{polydiv}
-\RequirePackage{xparse,expl3}
+%\RequirePackage{xparse,expl3}
 \ExplSyntaxOn
 
 \bool_new:N \l__poly_zeros_bool
@@ -14,6 +14,7 @@
 \tl_new:N \l__poly_longdiv_sep_tl
 \tl_new:N \l__poly_oline_tl
 \tl_new:N \l__poly_uline_tl
+\tl_new:N \l__poly_neguline_tl
 \tl_set:Nn \l__poly_var_tl {x}
 \tl_set:Nn \l__poly_sep_tl {}
 \tl_set:Nn \l__poly_longdiv_sep_tl {}
@@ -31,7 +32,15 @@
 \int_new:N \l__poly_cstage_int
 \int_set:Nn \l__poly_pad_int{3}
 \seq_new:N \l__poly_gtmpa_seq
+\seq_new:N \l__poly_tmpa_seq
 \seq_new:N \l__poly_mod_seq
+
+\tl_const:Nn \c__poly_item_regex_tl 
+  {
+    \exp_not:n{[\+\-\ ]*\d*\ *} \l__poly_var_tl (?:\exp_not:N\^ \exp_not:N\d* )*
+    |
+    \exp_not:n{[\+\-]?\d+}
+  }
 
 \keys_define:nn { polynomial }
 {
@@ -72,33 +81,33 @@
     {
       \bool_if:nTF {\int_compare_p:n {##1 != 0} || \l__poly_zeros_bool}
       {
-	\int_compare:nTF {##1 < 0} 
-	{
+        \int_compare:nTF {##1 < 0} 
+        {
           \bool_if:NF \l__poly_first_bool {
-	    \tl_use:N \l__poly_sep_tl
+            \tl_use:N \l__poly_sep_tl
           }
           - \tl_use:N \l__poly_sep_tl
-	  \bool_if:nF {\int_compare_p:n {##1 == -1} && \int_compare_p:n {\l__poly_deg_int > 0}}
-	  {
-	    \int_eval:n {-##1}
-	  }
-	}
-	{
-	  \bool_if:NF \l__poly_first_bool {\tl_use:N \l__poly_sep_tl+} \tl_use:N \l__poly_sep_tl
-	  \bool_if:nF {\int_compare_p:n {##1 == 1} && \int_compare_p:n {\l__poly_deg_int > 0}}
-	  {
-	    ##1
-	  }
-	}
-	\int_compare:nT {\l__poly_deg_int > 0}
-	{
-	  \tl_use:N \l__poly_var_tl
-	  \int_compare:nT {\l__poly_deg_int > 1} {^{\int_use:N \l__poly_deg_int}}
-	}
+          \bool_if:nF {\int_compare_p:n {##1 == -1} && \int_compare_p:n {\l__poly_deg_int > 0}}
+          {
+            \int_eval:n {-##1}
+          }
+        }
+        {
+          \bool_if:NF \l__poly_first_bool {\tl_use:N \l__poly_sep_tl+} \tl_use:N \l__poly_sep_tl
+          \bool_if:nF {\int_compare_p:n {##1 == 1} && \int_compare_p:n {\l__poly_deg_int > 0}}
+          {
+            ##1
+          }
+        }
+        \int_compare:nT {\l__poly_deg_int > 0}
+        {
+          \tl_use:N \l__poly_var_tl
+          \int_compare:nT {\l__poly_deg_int > 1} {^{\int_use:N \l__poly_deg_int}}
+        }
       }
       {
-	\tl_use:N \l__poly_sep_tl
-	\tl_use:N \l__poly_sep_tl
+        \tl_use:N \l__poly_sep_tl
+        \tl_use:N \l__poly_sep_tl
       }
       \bool_gset_false:N \l__poly_first_bool
     }
@@ -146,9 +155,9 @@
 \cs_new_nopar:Npn \poly_mul:NNN #1#2#3 {
   \seq_clear_new:N #1
   \group_begin:
-  \seq_clear_new:N \l__poly_tmpa_seq	
-  \seq_clear_new:N \l__poly_tmpb_seq	
-  \seq_clear_new:N \l__poly_tmpc_seq	
+  \seq_clear_new:N \l__poly_tmpa_seq  
+  \seq_clear_new:N \l__poly_tmpb_seq  
+  \seq_clear_new:N \l__poly_tmpc_seq  
   \int_set:Nn \l__poly_tmpa_int {\seq_count:N #2 - 1}
   \seq_map_inline:Nn #2 {
     \seq_clear:N \l__poly_tmpa_seq
@@ -258,12 +267,9 @@
   \tl_set:Nn \l__poly_longdiv_sep_tl {\cr}
   \bool_set_true:N \l__poly_zeros_bool
   \int_set:Nn \l__poly_tmpa_int {2*\seq_count:N #1+1}
-  \tl_set:Nn \l__poly_oline_tl {\multispan}
-  \tl_put_right:Nx \l__poly_oline_tl {{\int_use:N \l__poly_tmpa_int}}
-  \tl_put_right:Nn \l__poly_oline_tl {\hrulefill\cr}
-  \tl_set:Nn \l__poly_uline_tl {\multispan}
-  \tl_put_right:Nx \l__poly_uline_tl {{\int_eval:n {2*\seq_count:N #2 - 1}}}
-  \tl_put_right:Nn \l__poly_uline_tl {\hrulefill\cr}
+  \tl_set:Nx \l__poly_oline_tl {\exp_not:N\multispan {\int_use:N \l__poly_tmpa_int}\exp_not:N\hrulefill\exp_not:N\cr}
+  \tl_set:Nx \l__poly_uline_tl {\exp_not:N\multispan {\int_eval:n {2*\seq_count:N #2 -1}}\exp_not:N\hrulefill\exp_not:N\cr}
+  \tl_set:Nx \l__poly_neguline_tl {\exp_not:N\multispan {\int_eval:n {2*\seq_count:N #2}}\exp_not:N\hrulefill\exp_not:N\cr}
   \int_set:Nn \l__poly_trailing_int {\seq_count:N #2}
   \leavevmode\vbox{\halign {  $##$&&$\>##$ \crcr
     &
@@ -284,7 +290,7 @@
     \bool_set_true:N \l__poly_trailing_bool
     \poly_print:N #2
     &
-    \smash{\Bigr)}
+    \smash{\!\Bigr)}
     &
     \int_set:Nn \l__poly_pad_int {0}
     \bool_set_false:N \l__poly_trailing_bool
@@ -312,8 +318,15 @@
       \tl_use:N \l__poly_longdiv_sep_tl
       \int_compare:nT {\int_mod:nn{\l__poly_tmpb_int}{2} == 1} {
         \noalign{\vskip-\normalbaselineskip\vskip\jot}
-        \prg_replicate:nn {2*\seq_count:N #2 + \l__poly_tmpb_int + 1} {&}
-        \tl_use:N \l__poly_uline_tl
+        \int_compare:nNnTF { \seq_item:Nn \l__poly_tmpa_seq 1 } < 0
+          {
+            \prg_replicate:nn {2*\seq_count:N #2 + \l__poly_tmpb_int } {&}
+            \tl_use:N \l__poly_neguline_tl
+          }
+          {
+            \prg_replicate:nn {2*\seq_count:N #2 + \l__poly_tmpb_int + 1} {&}
+            \tl_use:N \l__poly_uline_tl
+          }
       }
     }
     \cr
@@ -321,25 +334,94 @@
   \group_end:
 }
 \cs_generate_variant:Nn \poly_longdiv:NN {cc}
-\NewDocumentCommand \PolyPrint { O{} m } {
-  \group_begin:
-  \keys_set:nn { polynomial }
+\cs_new_protected_nopar:Npn \poly_parse:Nn #1#2
   {
-    #1
+    \group_begin:
+    \int_set:Nn \l__poly_tmpb_int { -1 }
+    \seq_clear:N \l__poly_gtmpa_seq
+    \exp_args:Nx \regex_extract_all:nnNTF 
+      { \c__poly_item_regex_tl }
+      { #2 }
+      \l__poly_tmpa_seq
+      {
+        \seq_map_inline:Nn \l__poly_tmpa_seq
+          {
+            \exp_args:NNo \seq_set_split:Nnn \l__poly_tmpb_seq \l__poly_var_tl {##1}
+            \exp_args:Nno \tl_if_in:nnTF { ##1 } \l__poly_var_tl
+              {
+                \tl_set:Nx \l__poly_expo_tl {\seq_item:Nn \l__poly_tmpb_seq 2}
+                \int_set:Nn \l__poly_tmpa_int 
+                  { 
+                    \tl_if_empty:NTF \l__poly_expo_tl { 1 }
+                      { \tl_tail:N \l__poly_expo_tl }
+                  }
+              }
+              {
+                \int_set:Nn \l__poly_tmpa_int { 0 }
+              }
+            \int_set:Nn \l__poly_tmpb_int 
+              { \int_max:nn \l__poly_tmpa_int \l__poly_tmpb_int }
+            \tl_set:Nx \l__poly_coef_tl { \seq_item:Nn \l__poly_tmpb_seq 1 }
+            \tl_set:cx
+              { polynomial> \int_use:N \l__poly_tmpa_int <item }
+              { 
+                \int_eval:n 
+                { 
+                  \cs_if_exist_use:c 
+                    { polynomial> \int_use:N \l__poly_tmpa_int <item }
+                  + 
+                  \tl_if_empty:NTF \l__poly_coef_tl 1
+                    { 
+                      \str_case_e:nnTF { \tl_item:Nn \l__poly_coef_tl {-1} }
+                      { {+} {} {-} {} }
+                      { \l__poly_coef_tl 1 }
+                      { \l__poly_coef_tl }
+                    }
+                }
+              }
+          }
+        \int_step_inline:nnnn 0 1 \l__poly_tmpb_int
+          {
+            \seq_gput_left:Nx \l__poly_gtmpa_seq 
+              { 
+                \tl_if_exist:cTF 
+                  { polynomial> ##1 <item }
+                  { \cs:w polynomial> ##1 <item \cs_end: }
+                  { 0 } 
+              }
+          }
+      }
+      { \PackageError{polydiv}{`#2'~is~not~a~valid~expression.} }
+    \group_end:
+    \seq_set_eq:NN #1 \l__poly_gtmpa_seq
   }
-  \poly_print:c {polynomial #2}
+\cs_generate_variant:Nn \poly_parse:Nn { cn }
+\NewDocumentCommand \PolyPrint { s O{} m } {
+  \group_begin:
+  \keys_set:nn { polynomial } {#2}
+  \IfBooleanTF {#1}
+    {
+      \poly_parse:cn { polynomial@tmpa } {#3}
+      \poly_print:c { polynomial@tmpa }
+    }
+    { \poly_print:c {polynomial~#3} }
   \group_end:
 }
-\NewDocumentCommand \PolySet { m m } {
-  \seq_set_from_clist:cn {polynomial #1} {#2}
+\NewDocumentCommand \PolySet { s m m } {
+  \IfBooleanTF {#1} \poly_parse:cn \seq_set_from_clist:cn 
+  {polynomial~#2} {#3}
 }
-\NewDocumentCommand \PolyLongDiv {O{} m m } {
+\NewDocumentCommand \PolyLongDiv { s O{} m m } {
   \group_begin:
-  \keys_set:nn { polynomial }
-  {
-    #1
-  }
-  \poly_longdiv:cc {polynomial #2} {polynomial #3}
+  \keys_set:nn { polynomial } {#2}
+  \IfBooleanTF {#1}
+    {
+      \poly_parse:cn { polynomial@tmpa } {#3}
+      \poly_parse:cn { polynomial@tmpb } {#4}
+      \poly_longdiv:cc { polynomial@tmpa } { polynomial@tmpb }
+    }
+    { \poly_longdiv:cc {polynomial~#3} {polynomial~#4} }
   \group_end:
 }
+
 \ExplSyntaxOff
